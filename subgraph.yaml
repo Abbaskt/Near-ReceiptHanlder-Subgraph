@@ -1,4 +1,6 @@
-specVersion: 0.0.1
+specVersion: 0.0.4
+description: Near ReceiptHandler test
+repository: https://github.com/Abbaskt/Near-ReceiptHanlder-Subgraph
 schema:
   file: ./schema.graphql
 dataSources:
@@ -7,11 +9,12 @@ dataSources:
     network: near-mainnet
     source:
       account: "unmarshal.near"
+      startBlock: 80627015
     mapping:
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
+      file: ./src/mapping.ts
       entities:
-        - ExampleEntity
+        - Receipts
       receiptHandlers:
         - handler: handleReceipt
-      file: ./src/receipts.ts
