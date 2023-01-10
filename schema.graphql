@@ -1,5 +1,41 @@
-type ExampleEntity @entity {
+type GeneratedReceipt @entity {
   id: ID!
-  block: Bytes!
-  count: BigInt!
+  blockDetails: BlockDetails!
+  receiptDetails: ReceiptDetails!
+}
+
+type BlockDetails @entity {
+  id: ID!
+  number: BigInt!
+  timestamp: BigInt!
+}
+
+type ReceiptDetails @entity {
+  id: ID!
+  actionReceipt: ActionReceipt!
+  outcome: OutcomeReceipt!
+}
+
+type ActionReceipt @entity {
+  id: ID!
+  receiverId: String!
+  signerId: String!
+  signerPublicKey: String!
+  gasPrice: BigInt!
+  actions: [Action!]
+}
+
+type Action @entity {
+  id: ID!
+  methodCalled: String
+  args: String
+  deposit: BigInt
+}
+
+type OutcomeReceipt @entity {
+  id: ID!
+  logs: [String!]
+  receiptIds: [String!]
+  executorId: String
+  successStatus: String
 }
