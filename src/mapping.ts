@@ -13,9 +13,9 @@ export function handleReceipt(
 ): void {
   // Setting block details
   let block = receiptWithOutcome.block
-  let blockDetail = BlockDetail.load(block.header.hash.toHexString())
+  let blockDetail = BlockDetail.load(block.header.hash.toBase58())
   if (!blockDetail) {
-	blockDetail = new BlockDetail(block.header.hash.toHexString())
+	blockDetail = new BlockDetail(block.header.hash.toBase58())
 	blockDetail.number = BigInt.fromI32(block.header.height as i32)
 	blockDetail.timestamp = BigInt.fromU64(block.header.timestampNanosec);
 	blockDetail.save()
@@ -23,17 +23,17 @@ export function handleReceipt(
 
   // Assigning action receipts values to ActionReceipt
   let receipt = receiptWithOutcome.receipt
-  let actionReceipt = new ActionReceipt(receipt.id.toHex())
+  let actionReceipt = new ActionReceipt(receipt.id.toBase58())
   actionReceipt.receiverId = receipt.receiverId
   actionReceipt.signerId = receipt.signerId
-  actionReceipt.signerPublicKey = receipt.signerPublicKey.bytes.toHexString()
+  actionReceipt.signerPublicKey = receipt.signerPublicKey.bytes.toBase58()
   actionReceipt.gasPrice = receipt.gasPrice
 
   // Iterating through actions performed by receipts and storing in actionReceipt
   let actions: Array<string> = [];
   for (let i = 0; i < receipt.actions.length; i++) {
 	let action = receipt.actions[i]
-	let actionEntity = new Action(receipt.id.toHex() + "-" + action.kind.toString() + "-" + i.toString())
+	let actionEntity = new Action(receipt.id.toBase58() + "-" + action.kind.toString() + "-" + i.toString())
 	// Checking the type of action performed and
 	// assigning appropriate values
 	if (action.kind == near.ActionKind.FUNCTION_CALL) {
@@ -58,23 +58,23 @@ export function handleReceipt(
 
   // Assigning outcome values to OutcomeReceipt
   let outcome = receiptWithOutcome.outcome
-  let outcomeReceipt = new OutcomeReceipt(outcome.id.toHex())
+  let outcomeReceipt = new OutcomeReceipt(outcome.id.toBase58())
   outcomeReceipt.logs = outcome.logs
   outcomeReceipt.receiptIds = outcome.receiptIds.map<string>(value => {
-	return value.toString()
+	return value.toBase58()
   })
   outcomeReceipt.executorId = outcome.executorId
   outcomeReceipt.successStatus = outcomeReceipt.successStatus
   outcomeReceipt.save()
 
   // Assigning the Actions and Outcomes to ReceiptDetails
-  let receiptDetails = new ReceiptDetails(receipt.id.toHex())
+  let receiptDetails = new ReceiptDetails(receipt.id.toBase58())
   receiptDetails.actionReceipt = actionReceipt.id
   receiptDetails.outcome = outcomeReceipt.id
   receiptDetails.save()
 
   // Assigning BlockDetails and ReceiptDetails to GeneratedReceipt
-  let generatedReceipt = new GeneratedReceipt(receipt.id.toHex())
+  let generatedReceipt = new GeneratedReceipt(receipt.id.toBase58())
   generatedReceipt.blockDetail = blockDetail.id
   generatedReceipt.receiptDetails = receiptDetails.id
   generatedReceipt.save()
