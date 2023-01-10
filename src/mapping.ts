@@ -1,34 +1,80 @@
-import { near, BigInt } from "@graphprotocol/graph-ts"
-import { ExampleEntity } from "../generated/schema"
+import {BigInt, near} from "@graphprotocol/graph-ts"
+import {
+  Action,
+  ActionReceipt,
+  BlockDetails,
+  GeneratedReceipt,
+  OutcomeReceipt,
+  ReceiptDetails
+} from "../generated/schema"
 
 export function handleReceipt(
   receiptWithOutcome: near.ReceiptWithOutcome
 ): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(receiptWithOutcome.receipt.id.toHex())
-
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (!entity) {
-    entity = new ExampleEntity(receiptWithOutcome.receipt.id.toHex())
-
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
+  // Setting block details
+  let block = receiptWithOutcome.block
+  let blockDetails = BlockDetails.load(block.header.hash.toHexString())
+  if (!blockDetails) {
+	blockDetails = new BlockDetails(block.header.hash.toHexString())
+	blockDetails.number = BigInt.fromI32(block.header.height as i32)
+	blockDetails.timestamp = BigInt.fromU64(block.header.timestampNanosec);
+	blockDetails.save()
   }
 
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
+  // Assigning action receipts values to ActionReceipt
+  let receipt = receiptWithOutcome.receipt
+  let actionReceipt = new ActionReceipt(receipt.id.toHex())
+  actionReceipt.receiverId = receipt.receiverId
+  actionReceipt.signerId = receipt.signerId
+  actionReceipt.signerPublicKey = receipt.signerPublicKey.bytes.toHexString()
+  actionReceipt.gasPrice = receipt.gasPrice
 
-  // Entity fields can be set based on receipt information
-  entity.block = receiptWithOutcome.block.header.hash
+  // Iterating through actions performed by receipts and storing in actionReceipt
+  let actions: Array<string> = [];
+  for (let i = 0; i < receipt.actions.length; i++) {
+	let action = receipt.actions[i]
+	let actionEntity = new Action(receipt.id.toHex() + "-" + i.toString())
+	// Checking the type of action performed and
+	// assigning appropriate values
+	if (action.kind == near.ActionKind.FUNCTION_CALL) {
+	  let decodedAction = action.toFunctionCall()
+	  actionEntity.methodCalled = decodedAction.methodName
+	  actionEntity.args = decodedAction.args.toString()
+	  actionEntity.deposit = decodedAction.deposit
+	}
+	if (action.kind == near.ActionKind.STAKE) {
+	  let decodedAction = action.toStake()
+	  actionEntity.deposit = decodedAction.stake
+	}
+	if (action.kind == near.ActionKind.TRANSFER) {
+	  let decodedAction = action.toTransfer()
+	  actionEntity.deposit = decodedAction.deposit
+	}
+	actions.push(actionEntity.id)
+  }
+  actionReceipt.actions = actions
+  actionReceipt.save()
 
-  // Entities can be written to the store with `.save()`
-  entity.save()
+  // Assigning outcome values to OutcomeReceipt
+  let outcome = receiptWithOutcome.outcome
+  let outcomeReceipt = new OutcomeReceipt(outcome.id.toHex())
+  outcomeReceipt.logs = outcome.logs
+  outcomeReceipt.receiptIds = outcome.receiptIds.map<string>(value => {
+	return value.toString()
+  })
+  outcomeReceipt.executorId = outcome.executorId
+  outcomeReceipt.successStatus = outcomeReceipt.successStatus
+  outcomeReceipt.save()
 
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
+  // Assigning the Actions and Outcomes to ReceiptDetails
+  let receiptDetails = new ReceiptDetails(receipt.id.toHex())
+  receiptDetails.actionReceipt = actionReceipt.id
+  receiptDetails.outcome = outcomeReceipt.id
+  receiptDetails.save()
+
+  // Assigning BlockDetails and ReceiptDetails to GeneratedReceipt
+  let generatedReceipt = new GeneratedReceipt(receipt.id.toHex())
+  generatedReceipt.blockDetails = blockDetails.id
+  generatedReceipt.receiptDetails = receiptDetails.id
+  generatedReceipt.save()
 }

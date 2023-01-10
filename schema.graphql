@@ -30,6 +30,7 @@ type Action @entity {
   methodCalled: String
   args: String
   deposit: BigInt
+  stake: BigInt
 }
 
 type OutcomeReceipt @entity {
