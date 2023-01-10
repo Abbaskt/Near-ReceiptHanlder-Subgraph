@@ -1,10 +1,10 @@
 type GeneratedReceipt @entity {
   id: ID!
-  blockDetails: BlockDetails!
+  blockDetail: BlockDetail!
   receiptDetails: ReceiptDetails!
 }
 
-type BlockDetails @entity {
+type BlockDetail @entity {
   id: ID!
   number: BigInt!
   timestamp: BigInt!

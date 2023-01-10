@@ -2,7 +2,7 @@ import {BigInt, near} from "@graphprotocol/graph-ts"
 import {
   Action,
   ActionReceipt,
-  BlockDetails,
+  BlockDetail,
   GeneratedReceipt,
   OutcomeReceipt,
   ReceiptDetails
@@ -13,12 +13,12 @@ export function handleReceipt(
 ): void {
   // Setting block details
   let block = receiptWithOutcome.block
-  let blockDetails = BlockDetails.load(block.header.hash.toHexString())
-  if (!blockDetails) {
-	blockDetails = new BlockDetails(block.header.hash.toHexString())
-	blockDetails.number = BigInt.fromI32(block.header.height as i32)
-	blockDetails.timestamp = BigInt.fromU64(block.header.timestampNanosec);
-	blockDetails.save()
+  let blockDetail = BlockDetail.load(block.header.hash.toHexString())
+  if (!blockDetail) {
+	blockDetail = new BlockDetail(block.header.hash.toHexString())
+	blockDetail.number = BigInt.fromI32(block.header.height as i32)
+	blockDetail.timestamp = BigInt.fromU64(block.header.timestampNanosec);
+	blockDetail.save()
   }
 
   // Assigning action receipts values to ActionReceipt
@@ -33,7 +33,7 @@ export function handleReceipt(
   let actions: Array<string> = [];
   for (let i = 0; i < receipt.actions.length; i++) {
 	let action = receipt.actions[i]
-	let actionEntity = new Action(receipt.id.toHex() + "-" + i.toString())
+	let actionEntity = new Action(receipt.id.toHex() + "-" + action.kind.toString() + "-" + i.toString())
 	// Checking the type of action performed and
 	// assigning appropriate values
 	if (action.kind == near.ActionKind.FUNCTION_CALL) {
@@ -50,6 +50,7 @@ export function handleReceipt(
 	  let decodedAction = action.toTransfer()
 	  actionEntity.deposit = decodedAction.deposit
 	}
+	actionEntity.save()
 	actions.push(actionEntity.id)
   }
   actionReceipt.actions = actions
@@ -74,7 +75,7 @@ export function handleReceipt(
 
   // Assigning BlockDetails and ReceiptDetails to GeneratedReceipt
   let generatedReceipt = new GeneratedReceipt(receipt.id.toHex())
-  generatedReceipt.blockDetails = blockDetails.id
+  generatedReceipt.blockDetail = blockDetail.id
   generatedReceipt.receiptDetails = receiptDetails.id
   generatedReceipt.save()
 }
